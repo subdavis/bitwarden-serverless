@@ -1,6 +1,7 @@
 var chakram = require('chakram');
 var jwt = require('jsonwebtoken');
 var _ = require('lodash');
+var helpers = require('../helpers');
 var expect = chakram.expect;
 
 describe("Folders API", function () {
@@ -30,32 +31,10 @@ describe("Folders API", function () {
 
   var accessToken;
   var email;
-
-  before(function() {
-    email = null;
-
-    var registrationBody = getRegistrationBody();
-    var loginBody = getLoginBody();
-    loginBody.username = registrationBody.email;
-    email = registrationBody.email;
-
-    return chakram.post(
-      process.env.API_URL + "/api/accounts/register",
-      registrationBody
-    ).then(function (response) {
-      var response = chakram.post(
-        process.env.API_URL + "/identity/connect/token",
-        undefined,
-        {
-          form: loginBody
-        }
-      );
-
-      return response;
-    }).then(function(response) {
-      accessToken = response.body.access_token;
-    });
-  })
+  
+  before(async () => {
+      ({ accessToken, email } = await helpers.register());
+  });
 
   it('should return error on create without authorization header', function() {
     return chakram.post(process.env.API_URL + "/api/folders", { 'Name': 'name' }).then(function (response) {
