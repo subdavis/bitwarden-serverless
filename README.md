@@ -57,38 +57,7 @@ Run `./two_factor.sh`, the script will ask you for the e-mail you want to set up
 
 ## Import existing data
 
-**Note for all imports:** consider adding more Write capacity to the DynamoDB table for the import. The script will re-try to import the data, but it's not very well tested. A write capacity of 5 units should be safe for 500-1000 items. It can be reset to 1 afterwards.
 
-The import script will interactively ask for your master password. This is needed since the data in the CSV must be encrypted and some data like existing folders must be decrypted.
-
-In the example below, replace `STAGE` and `REGION` if necessary in regards to your setup.
-
-### Bitwarden
-
-Go to https://help.bitwarden.com/article/export-your-data/
-
-```bash
-STAGE=prod REGION=us-east-1 ./import.sh -e user@example.com -f export.csv -p bitwarden
-```
-
-### Lastpass
-
-Go to https://lastpass.com/support.php?cmd=showfaq&id=1206
-
-```bash
-STAGE=prod REGION=us-east-1 ./import.sh -e user@example.com -f export.csv -p lastpass
-```
-
-## Export data
-
-You can export your data most easily using the official Bitwarden CLI, this server is API compatible with it.
-
-```bash
-npm install -g @bitwarden/cli
-bw config server <api gateway url> # e.g. https://abcdefg.execute-api.us-east-1.amazonaws.com/prod/
-# follow instructions in terminal about session env variable
-bw export
-```
 
 ## Run on own domain
 
