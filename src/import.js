@@ -1,25 +1,11 @@
-import * as utils from './lib/api_utils';
-import { Cipher } from './lib/models';
-import { Folder } from './lib/models';
+import { normalizeBody, validationError } from './lib/api_utils';
+import { Cipher, Folder } from './lib/models';
 import { loadContextFromHeader, buildCipherDocument, touch } from './lib/bitwarden';
 
 const MAX_RETRIES = 4;
 
-/**
- * This callback type is `failureCallback`
- * @callback failureCallback
- * @param {Object} model - the model that failed to create
- * @param {Object} user - the user that owns this model
- * @returns {Promise}
- */
-
-/**
- * resolveHandler resolves a promise list
- * @param {Promise} promiseList 
- * @param {failureCallback} fcb 
- * @returns {Object} - with members `output`, `failedPromises`
- */
-const resolveHandler = async (promiseList, fcb) => {
+const resolveHandler = async (promiseList, user, fcb) => {
+  const output = [];
   let retryCount = 0;
   let failedPromises = promiseList;
   while (failedPromises.length > 0 && retryCount < MAX_RETRIES) {
@@ -37,13 +23,13 @@ const resolveHandler = async (promiseList, fcb) => {
               // Delay by 1-3s to get throughput lower
               // lambda has a limit of 30s for functions on API GWs
               setTimeout(resolve, Math.floor(Math.random() * 3000));
-            }).then(() => {
-              fcb(model, user);
-            });
+            }).then(() => fcb(model, user));
             toRetry.push(retryPromise);
           }
         }
-        const msg = 'DONE, total: ' + results.length + ', error: ' + toRetry.length + ', rounds: ' + retryCount;
+        const msg = 'DONE, total: ' + results.length
+          + ', error: ' + toRetry.length
+          + ', rounds: ' + retryCount;
         console.log(msg);
         output.push(msg);
         return toRetry;
@@ -53,9 +39,9 @@ const resolveHandler = async (promiseList, fcb) => {
   }
   return {
     output,
-    failedPromises
+    failedPromises,
   };
-}
+};
 
 export const postHandler = async (event, context, callback) => {
   console.log('Bitwarden import handler triggered');
@@ -68,48 +54,45 @@ export const postHandler = async (event, context, callback) => {
   try {
     ({ user } = await loadContextFromHeader(event.headers.Authorization));
   } catch (e) {
-    callback(null, utils.validationError('User not found: ' + e.message));
+    callback(null, validationError('User not found: ' + e.message));
     return;
   }
 
   if (!event.body) {
-    callback(null, utils.validationError('Request body is missing'));
+    callback(null, validationError('Request body is missing'));
     return;
   }
 
-  const body = utils.normalizeBody(JSON.parse(event.body));
+  const body = normalizeBody(JSON.parse(event.body));
 
   /**
    * Folder creation
    */
 
-  if (!Array.isArray(body.folders)){
-    callback(null, utils.validationError('Folders is not an array'));
+  if (!Array.isArray(body.folders)) {
+    callback(null, validationError('Folders is not an array'));
     return;
   }
 
-  let createFolder = (f, u) => {
-    Folder
-      .createAsync({
-        name: f.name,
-        userUuid: u.get('uuid'),
-      })
-      .then(result => ({ success: true, result, model: f }))
-      .catch(error => ({ success: false, error, model: f }));
-  }
+  const createFolder = (f, u) => (Folder
+    .createAsync({
+      name: f.name,
+      userUuid: u.get('uuid'),
+    })
+    .then(result => ({ success: true, result, model: f }))
+    .catch(error => ({ success: false, error, model: f }))
+  );
 
-  const folderPromises = body.folders.map(folder => {
-    createFolder(folder, user)
-  });
+  const folderPromises = body.folders.map(folder => createFolder(folder, user));
 
-  let {
-    output: folderOutput, 
-    failedPromises: folderFailedPromises 
-  } = await resolveHandler(folderPromises, createFolder);
+  const {
+    output: folderOutput,
+    failedPromises: folderFailedPromises,
+  } = await resolveHandler(folderPromises, user, createFolder);
 
   if (folderFailedPromises.length > 0) {
     folderOutput.push('Unable to complete for ' + folderFailedPromises.length + ' folders');
-    callback(null, utils.validationError(folderOutput.join(' ')));
+    callback(null, validationError(folderOutput.join(' ')));
   }
 
   /**
@@ -117,46 +100,44 @@ export const postHandler = async (event, context, callback) => {
    */
 
   if (!Array.isArray(body.ciphers)) {
-    callback(null, utils.validationError('Ciphers is not an array'));
+    callback(null, validationError('Ciphers is not an array'));
     return;
-  } else if (!Array.isArray(body.folderRelationships)) {
-    callback(null, utils.validationError('FolderRelationships is not an array'));
+  } else if (!Array.isArray(body.folderrelationships)) {
+    callback(null, validationError('FolderRelationships is not an array'));
     return;
   }
 
-  func createCipher = (c, u) => {
-    Cipher
-      .createAsync(buildCipherDocument(c, u))
-      .then(result => ({ success: true, result, model: c }))
-      .catch(error => ({ success: false, error, model: c }));
-  }
+  const createCipher = (c, u) => (Cipher
+    .createAsync(buildCipherDocument(c, u))
+    .then(result => ({ success: true, result, model: c }))
+    .catch(error => ({ success: false, error, model: c }))
+  );
 
-  const cipherPromises;
+  const cipherPromises = [];
   for (let i = 0; i < body.ciphers.length; i += 1) {
     const cipher = buildCipherDocument(body.ciphers[i], user);
-    const destFolder = body.folderRelationships.filter(fr => {
-      return fr.key === i;
-    });
+    const destFolder = body.folderrelationships.filter(fr => fr.key === i);
     if (destFolder.length === 1) {
-      if (folderPromises.length > i) {
-        const {result: folder} = await folderPromises[i];
+      const whichFolder = destFolder[0].value;
+      if (folderPromises.length > whichFolder) {
+        const { result: folder } = await folderPromises[whichFolder]; // eslint-disable-line
         cipher.folderUuid = folder.uuid;
       } else {
-        callback(null, utils.validationError('Folder defined in folder relationships was missing'));
+        callback(null, validationError('Folder defined in folder relationships was missing'));
         return;
       }
     }
-    createCipher(cipher, user);
+    cipherPromises.push(createCipher(cipher, user));
   }
 
-  let {
-    output: cipherOutput, 
-    failedPromises: cipherFailedPromises 
-  } = await resolveHandler(cipherPromises, createCipher);
+  const {
+    output: cipherOutput,
+    failedPromises: cipherFailedPromises,
+  } = await resolveHandler(cipherPromises, user, createCipher);
 
   if (cipherFailedPromises.length > 0) {
     cipherOutput.push('Unable to complete for ' + cipherFailedPromises.length + ' ciphers');
-    callback(null, utils.validationError(cipherOutput.join(' ')));
+    callback(null, validationError(cipherOutput.join(' ')));
   }
 
   await touch(user);
