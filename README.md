@@ -57,6 +57,8 @@ Run `./two_factor.sh`, the script will ask you for the e-mail you want to set up
 
 ## Import existing data
 
+**Note for all imports:** consider adding more Write capacity to the DynamoDB table for the import. The script will re-try to import the data, but it's not very well tested. A write capacity of 5 units should be safe for 500-1000 items. It can be reset to 1 afterwards.
+
 Go to https://help.bitwarden.com/article/export-your-data/ if you need to export your data from regular bitwarden first.
 
 Use [bitwarden/cli](https://github.com/bitwarden/cli) to import your data.  You will need to register an account with another app beforehand.
@@ -77,7 +79,7 @@ bw sync
 bw list items
 ```
 
-# Export data
+## Export data
 
 You can export your data most easily using the official Bitwarden CLI, this server is API compatible with it.
 
