@@ -57,7 +57,22 @@ Run `./two_factor.sh`, the script will ask you for the e-mail you want to set up
 
 ## Import existing data
 
+Use [bitwarden/cli](https://github.com/bitwarden/cli) to import your data.  You will need to register an account with another app beforehand.
 
+```bash
+# Set your server as the service URL returned from setup above
+bw config server [your_service_url]
+bw login
+# Show the help and examples for running bitwarden import
+bw import --help
+# Show the types of import sources
+bw import --formats
+# For example, to import from bitwarden CSV, you could run
+bw import [format] [path]
+# To verify the import:
+bw sync
+bw list items
+```
 
 ## Run on own domain
 

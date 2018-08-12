@@ -143,7 +143,7 @@ export const postHandler = async (event, context, callback) => {
   await touch(user);
 
   callback(null, {
-    statusCode: 201,
-    body: cipherOutput.concat(folderOutput).join(' '),
+    statusCode: 200,
+    body: '',
   });
 };
