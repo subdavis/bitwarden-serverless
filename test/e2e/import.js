@@ -28,7 +28,7 @@ describe('Import API', () => {
             { headers: { Authorization: 'Bearer ' + accessToken } }
         ).then((response) => {
             expect(response).to.have.status(200);
-            expect(response.body).to.equal('');
+            expect(response.body).to.be.undefined;
         });
     });
 });
