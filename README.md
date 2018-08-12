@@ -57,21 +57,36 @@ Run `./two_factor.sh`, the script will ask you for the e-mail you want to set up
 
 ## Import existing data
 
+Go to https://help.bitwarden.com/article/export-your-data/ if you need to export your data from regular bitwarden first.
+
 Use [bitwarden/cli](https://github.com/bitwarden/cli) to import your data.  You will need to register an account with another app beforehand.
 
 ```bash
-# Set your server as the service URL returned from setup above
-bw config server [your_service_url]
+npm install -g @bitwarden/cli
+bw config server <api gateway url> # e.g. https://abcdefg.execute-api.us-east-1.amazonaws.com/prod/
 bw login
 # Show the help and examples for running bitwarden import
 bw import --help
-# Show the types of import sources
 bw import --formats
-# For example, to import from bitwarden CSV, you could run
+# Import your data
 bw import [format] [path]
+# Example: import bitwarden CSV data:
+bw import bitwardencsv export.csv
 # To verify the import:
 bw sync
 bw list items
+```
+
+# Export data
+
+You can export your data most easily using the official Bitwarden CLI, this server is API compatible with it.
+
+```bash
+npm install -g @bitwarden/cli
+bw config server <api gateway url> # e.g. https://abcdefg.execute-api.us-east-1.amazonaws.com/prod/
+# follow instructions in terminal about session env variable
+bw login
+bw export
 ```
 
 ## Run on own domain
