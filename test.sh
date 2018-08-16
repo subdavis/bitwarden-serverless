@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-function cleanup {
-  serverless remove --stage ${STAGE}
-}
+# function cleanup {
+#   serverless remove --stage ${STAGE}
+# }
 
-trap cleanup EXIT
-trap cleanup INT
+# trap cleanup EXIT
+# trap cleanup INT
 
 ./node_modules/.bin/eslint .
 

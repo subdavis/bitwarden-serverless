@@ -25,6 +25,7 @@
   "author": "Vojtěch Vondra",
   "license": "MIT",
   "dependencies": {
+    "async-es": "^2.6.1",
     "aws-sdk": "^2.238.1",
     "buffer-equal-constant-time": "^1.0.1",
     "dynogels": "^9.0.0",

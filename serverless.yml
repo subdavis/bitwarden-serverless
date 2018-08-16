@@ -9,7 +9,7 @@ provider:
   stage: ${opt:stage, 'prod'}
   runtime: nodejs8.10
   memorySize: 256
-  timeout: 10
+  timeout: 30
   environment:
     DEVICES_TABLE: ${self:service}-${opt:stage, self:provider.stage}-devices
     USERS_TABLE: ${self:service}-${opt:stage, self:provider.stage}-users
@@ -24,6 +24,8 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:DescribeTable
+        - dynamodb:UpdateTable
       Resource:
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DEVICES_TABLE}"
         - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}"
